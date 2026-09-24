@@ -1,0 +1,45 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Person {
+  id         String    @id @default(cuid())
+  name       String
+  phone      String
+  monthlyFee Float
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  payments   Payment[]
+
+  @@index([active])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  personId  String
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Restrict)
+  month     Int
+  year      Int
+  amount    Float
+  paidAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@unique([personId, month, year])
+  @@index([year, month])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  description String
+  amount      Float
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([date])
+}
