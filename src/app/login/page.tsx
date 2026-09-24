@@ -41,11 +41,11 @@ export default function LoginPage() {
         setPin("");
         inputRef.current?.focus();
       } else {
-        router.push("/dashboard");
-        router.refresh();
+        // Full window navigation ensures cookies are committed and sent on the fresh HTTP request
+        window.location.href = "/dashboard";
       }
-    } catch {
-      setError("An unexpected error occurred. Please try again.");
+    } catch (err: any) {
+      setError(err?.message || "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }

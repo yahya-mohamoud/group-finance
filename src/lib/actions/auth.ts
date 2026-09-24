@@ -25,51 +25,59 @@ import { ActionResult } from "./people";
  * Server action to authenticate using a 4-digit PIN.
  */
 export async function loginWithPin(pin: string): Promise<ActionResult> {
-  const ip = getClientIp();
+  try {
+    const ip = getClientIp();
 
-  // 1. Check rate limit
-  const rateLimitStatus = await checkRateLimit(ip);
-  if (rateLimitStatus.isLocked) {
-    return {
-      success: false,
-      error: "Too many attempts. Please try again later.",
-    };
-  }
-
-  // 2. Validate format (strictly 4 digits)
-  if (!validatePinFormat(pin)) {
-    await recordFailedAttempt(ip);
-    return {
-      success: false,
-      error: "Incorrect PIN. Please try again.",
-    };
-  }
-
-  // 3. Ensure admin exists and retrieve hash
-  const admin = await ensureAdminInitialized();
-
-  // 4. Verify PIN hash
-  const isMatch = await verifyPinHash(admin.pinHash, pin);
-
-  if (!isMatch) {
-    const failedResult = await recordFailedAttempt(ip);
-    if (failedResult.isLockedNow) {
+    // 1. Check rate limit
+    const rateLimitStatus = await checkRateLimit(ip);
+    if (rateLimitStatus.isLocked) {
       return {
         success: false,
         error: "Too many attempts. Please try again later.",
       };
     }
+
+    // 2. Validate format (strictly 4 digits)
+    if (!validatePinFormat(pin)) {
+      await recordFailedAttempt(ip);
+      return {
+        success: false,
+        error: "Incorrect PIN. Please try again.",
+      };
+    }
+
+    // 3. Ensure admin exists and retrieve hash
+    const admin = await ensureAdminInitialized();
+
+    // 4. Verify PIN hash
+    const isMatch = await verifyPinHash(admin.pinHash, pin);
+
+    if (!isMatch) {
+      const failedResult = await recordFailedAttempt(ip);
+      if (failedResult.isLockedNow) {
+        return {
+          success: false,
+          error: "Too many attempts. Please try again later.",
+        };
+      }
+      return {
+        success: false,
+        error: "Incorrect PIN. Please try again.",
+      };
+    }
+
+    // 5. Successful login: reset attempts counter and create session cookie
+    await resetRateLimit(ip);
+    await createSession();
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Login verification error:", err);
     return {
       success: false,
-      error: "Incorrect PIN. Please try again.",
+      error: err?.message || "Failed to verify PIN. Please try again.",
     };
   }
-
-  // 5. Successful login: reset attempts counter and create session cookie
-  await resetRateLimit(ip);
-  await createSession();
-
-  return { success: true };
 }
 
 /**
