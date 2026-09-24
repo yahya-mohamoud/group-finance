@@ -3,12 +3,14 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { PaymentFormSchema, PaymentFormData } from "@/lib/validation/schemas";
+import { requireAuth } from "@/lib/auth/session";
 import { ActionResult } from "./people";
 
 export async function recordOrUpdatePayment(
   raw: PaymentFormData
 ): Promise<ActionResult> {
   try {
+    await requireAuth();
     const validated = PaymentFormSchema.parse(raw);
 
     // Upsert ensures we enforce and utilize the unique constraint @@unique([personId, month, year])
@@ -50,6 +52,7 @@ export async function deletePayment(
   personId?: string
 ): Promise<ActionResult> {
   try {
+    await requireAuth();
     await prisma.payment.delete({
       where: { id: paymentId },
     });

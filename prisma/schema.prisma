@@ -1,6 +1,6 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -43,4 +43,28 @@ model Expense {
   createdAt   DateTime @default(now())
 
   @@index([date])
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  pinHash   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+}
+
+model LoginAttempt {
+  id          String    @id @default(cuid())
+  ipAddress   String    @unique
+  attempts    Int       @default(0)
+  lockedUntil DateTime?
+  updatedAt   DateTime  @updatedAt
 }

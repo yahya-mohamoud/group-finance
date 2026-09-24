@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { PersonFormSchema, PersonFormData } from "@/lib/validation/schemas";
+import { requireAuth } from "@/lib/auth/session";
 
 export type ActionResult<T = unknown> = {
   success: boolean;
@@ -35,6 +36,7 @@ export async function getPersonById(id: string) {
 
 export async function createPerson(raw: PersonFormData): Promise<ActionResult> {
   try {
+    await requireAuth();
     const validated = PersonFormSchema.parse(raw);
 
     const created = await prisma.person.create({
@@ -63,6 +65,7 @@ export async function updatePerson(
   raw: Partial<PersonFormData>
 ): Promise<ActionResult> {
   try {
+    await requireAuth();
     const validated = PersonFormSchema.partial().parse(raw);
 
     const updated = await prisma.person.update({
@@ -88,6 +91,7 @@ export async function togglePersonStatus(
   active: boolean
 ): Promise<ActionResult> {
   try {
+    await requireAuth();
     const updated = await prisma.person.update({
       where: { id },
       data: { active },
@@ -108,6 +112,7 @@ export async function togglePersonStatus(
 
 export async function deletePersonSafely(id: string): Promise<ActionResult> {
   try {
+    await requireAuth();
     const paymentCount = await prisma.payment.count({
       where: { personId: id },
     });

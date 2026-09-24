@@ -42,7 +42,15 @@ A modern, responsive, and reliable web application for small organizations, club
    - 6-month historical trend chart.
    - Print-ready and PDF-export friendly layout with clean print styling.
 
-7. **Configurable Currency**
+7. **Security & 4-Digit PIN Authentication**
+   - Server-verified 4-digit PIN authentication using **Argon2id** password hashing.
+   - HttpOnly, SameSite, Secure session cookie with HMAC-SHA256 signature verification.
+   - Automated brute-force lockout protection (temporarily locks after 5 consecutive failures).
+   - Server-side route protection and Server Action guards.
+   - Settings page (`/settings`) to update access PIN (requiring current PIN verification).
+   - Default initial PIN: `1234` (configurable).
+
+8. **Configurable Currency**
    - Defaults to **ETB** (e.g. `ETB 5,200`), cleanly centralized in `src/lib/currency.ts` or via environment variables.
 
 ---

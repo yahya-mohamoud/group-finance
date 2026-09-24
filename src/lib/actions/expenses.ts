@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { ExpenseFormSchema, ExpenseFormData } from "@/lib/validation/schemas";
+import { requireAuth } from "@/lib/auth/session";
 import { ActionResult } from "./people";
 
 export async function getExpensesForMonth(month: number, year: number) {
@@ -24,6 +25,7 @@ export async function getExpensesForMonth(month: number, year: number) {
 
 export async function createExpense(raw: ExpenseFormData): Promise<ActionResult> {
   try {
+    await requireAuth();
     const validated = ExpenseFormSchema.parse(raw);
 
     const expense = await prisma.expense.create({
@@ -50,6 +52,7 @@ export async function updateExpense(
   raw: ExpenseFormData
 ): Promise<ActionResult> {
   try {
+    await requireAuth();
     const validated = ExpenseFormSchema.parse(raw);
 
     const updated = await prisma.expense.update({
@@ -74,6 +77,7 @@ export async function updateExpense(
 
 export async function deleteExpense(id: string): Promise<ActionResult> {
   try {
+    await requireAuth();
     await prisma.expense.delete({
       where: { id },
     });

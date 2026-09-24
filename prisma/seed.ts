@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import argon2 from "argon2";
 
 const prisma = new PrismaClient();
 
@@ -6,11 +7,24 @@ async function main() {
   console.log("Starting database seed...");
 
   // Clear existing data safely
+  await prisma.session.deleteMany({});
+  await prisma.loginAttempt.deleteMany({});
   await prisma.payment.deleteMany({});
   await prisma.expense.deleteMany({});
   await prisma.person.deleteMany({});
+  await prisma.admin.deleteMany({});
 
   console.log("Cleared existing records.");
+
+  // Create default Admin account with PIN 1234
+  const defaultPin = "1234";
+  const pinHash = await argon2.hash(defaultPin, { type: argon2.argon2id });
+  await prisma.admin.create({
+    data: {
+      pinHash,
+    },
+  });
+  console.log(`Initialized Admin account with default 4-digit PIN: ${defaultPin}`);
 
   // Create People
   const person1 = await prisma.person.create({
