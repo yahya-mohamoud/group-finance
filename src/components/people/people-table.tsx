@@ -10,6 +10,7 @@ import {
   UserX,
   Phone,
   Filter,
+  Trash2,
 } from "lucide-react";
 import {
   Table,
@@ -24,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
 import { EditPersonModal } from "./edit-person-modal";
-import { togglePersonStatus } from "@/lib/actions/people";
+import { togglePersonStatus, deletePersonSafely } from "@/lib/actions/people";
 import { formatCurrency } from "@/lib/currency";
 
 export interface PersonItem {
@@ -49,6 +50,11 @@ export function PeopleTable({ people }: PeopleTableProps) {
   const [confirmTogglePerson, setConfirmTogglePerson] = React.useState<PersonItem | null>(null);
   const [toggling, setToggling] = React.useState(false);
 
+  // Delete member confirmation dialog (identical pattern to expenses)
+  const [confirmDeletePerson, setConfirmDeletePerson] = React.useState<PersonItem | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
+
   const filteredPeople = React.useMemo(() => {
     return people.filter((person) => {
       const matchesSearch =
@@ -72,6 +78,36 @@ export function PeopleTable({ people }: PeopleTableProps) {
       setConfirmTogglePerson(null);
     } finally {
       setToggling(false);
+    }
+  };
+
+  const handleDeletePerson = async () => {
+    if (!confirmDeletePerson) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await deletePersonSafely(confirmDeletePerson.id);
+      if (!res.success) {
+        setDeleteError(res.error || "Failed to delete person");
+      } else {
+        setConfirmDeletePerson(null);
+      }
+    } catch (err: any) {
+      setDeleteError(err?.message || "Failed to delete person");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeactivateInstead = async () => {
+    if (!confirmDeletePerson) return;
+    setDeleting(true);
+    try {
+      await togglePersonStatus(confirmDeletePerson.id, false);
+      setConfirmDeletePerson(null);
+      setDeleteError(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -206,7 +242,7 @@ export function PeopleTable({ people }: PeopleTableProps) {
                           variant="ghost"
                           size="sm"
                           onClick={() => setConfirmTogglePerson(person)}
-                          className="h-8 px-2 text-rose-600 hover:text-rose-800 hover:bg-rose-50"
+                          className="h-8 px-2 text-amber-700 hover:text-amber-900 hover:bg-amber-50"
                           title="Deactivate Person"
                         >
                           <UserX className="h-3.5 w-3.5 mr-1" />
@@ -224,6 +260,20 @@ export function PeopleTable({ people }: PeopleTableProps) {
                           Reactivate
                         </Button>
                       )}
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setDeleteError(null);
+                          setConfirmDeletePerson(person);
+                        }}
+                        className="h-8 px-2 text-rose-600 hover:text-rose-800 hover:bg-rose-50"
+                        title="Delete Member"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                        Delete
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -253,8 +303,8 @@ export function PeopleTable({ people }: PeopleTableProps) {
         }
         description={
           confirmTogglePerson?.active
-            ? "Deactivating this person preserves all their past payment records, but excludes them from upcoming monthly expected totals."
-            : "Reactivating this person will include them in monthly expected contribution totals."
+            ? `Are you sure you want to deactivate "${confirmTogglePerson?.name}"? Historical payment records will be preserved, but they will be excluded from upcoming monthly expected contribution totals.`
+            : `Are you sure you want to reactivate "${confirmTogglePerson?.name}"? They will be included in upcoming monthly expected contribution totals.`
         }
       >
         <div className="flex items-center justify-end gap-2 pt-4">
@@ -270,8 +320,62 @@ export function PeopleTable({ people }: PeopleTableProps) {
             onClick={handleConfirmStatusToggle}
             disabled={toggling}
           >
-            {confirmTogglePerson?.active ? "Yes, Deactivate" : "Yes, Reactivate"}
+            {toggling
+              ? "Saving..."
+              : confirmTogglePerson?.active
+              ? "Yes, Deactivate"
+              : "Yes, Reactivate"}
           </Button>
+        </div>
+      </Dialog>
+
+      {/* Delete Member Confirmation Dialog - matches Expense deletion modal */}
+      <Dialog
+        open={!!confirmDeletePerson}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDeletePerson(null);
+            setDeleteError(null);
+          }
+        }}
+        title="Delete Member?"
+        description={`Are you sure you want to delete "${confirmDeletePerson?.name}"? This action cannot be undone.`}
+      >
+        {deleteError && (
+          <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 mt-2 mb-2">
+            <p className="font-semibold">{deleteError}</p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-end gap-2 pt-4">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setConfirmDeletePerson(null);
+              setDeleteError(null);
+            }}
+            disabled={deleting}
+          >
+            Cancel
+          </Button>
+
+          {deleteError ? (
+            <Button
+              variant="primary"
+              onClick={handleDeactivateInstead}
+              disabled={deleting}
+            >
+              {deleting ? "Deactivating..." : "Deactivate Instead"}
+            </Button>
+          ) : (
+            <Button
+              variant="danger"
+              onClick={handleDeletePerson}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Yes, Delete Member"}
+            </Button>
+          )}
         </div>
       </Dialog>
     </div>

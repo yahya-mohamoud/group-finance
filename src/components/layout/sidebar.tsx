@@ -31,7 +31,9 @@ export function Sidebar() {
           <Coins className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-base font-bold text-slate-900 leading-tight">Group Finance</h1>
+          <h1 className="text-base font-bold text-slate-900 leading-tight">
+            RAJO CHARITY
+          </h1>
           <p className="text-xs text-slate-500 font-medium">Monthly Ledger</p>
         </div>
       </div>
@@ -56,7 +58,9 @@ export function Sidebar() {
             >
               <Icon
                 className={`h-4 w-4 ${
-                  isActive ? "text-teal-700" : "text-slate-400 group-hover:text-slate-600"
+                  isActive
+                    ? "text-teal-700"
+                    : "text-slate-400 group-hover:text-slate-600"
                 }`}
               />
               {item.name}
@@ -69,7 +73,9 @@ export function Sidebar() {
       <div className="border-t border-slate-200 p-4">
         <div className="rounded-lg bg-slate-50 p-3 border border-slate-200/60">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Active Currency</span>
+            <span className="text-xs font-medium text-slate-500">
+              Active Currency
+            </span>
             <span className="rounded bg-teal-100 px-2 py-0.5 text-xs font-bold text-teal-800">
               {CURRENCY_CONFIG.code}
             </span>

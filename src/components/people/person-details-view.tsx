@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Phone,
@@ -12,10 +13,13 @@ import {
   Trash2,
   CheckCircle2,
   AlertCircle,
+  UserX,
+  UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog } from "@/components/ui/dialog";
 import {
   Table,
   TableHeader,
@@ -27,6 +31,7 @@ import {
 import { EditPersonModal } from "./edit-person-modal";
 import { MarkPaidModal } from "@/components/payments/mark-paid-modal";
 import { deletePayment } from "@/lib/actions/payments";
+import { deletePersonSafely, togglePersonStatus } from "@/lib/actions/people";
 import { formatCurrency, formatMonthYear } from "@/lib/currency";
 
 interface PaymentHistoryItem {
@@ -50,15 +55,60 @@ interface PersonDetailsViewProps {
 }
 
 export function PersonDetailsView({ person }: PersonDetailsViewProps) {
+  const router = useRouter();
+
   const [editOpen, setEditOpen] = React.useState(false);
   const [recordPaymentOpen, setRecordPaymentOpen] = React.useState(false);
   const [editingPayment, setEditingPayment] = React.useState<PaymentHistoryItem | null>(null);
 
+  // Member delete dialog
+  const [confirmDeletePerson, setConfirmDeletePerson] = React.useState(false);
+  const [deletingPerson, setDeletingPerson] = React.useState(false);
+  const [deletePersonError, setDeletePersonError] = React.useState<string | null>(null);
+
+  // Payment delete dialog
+  const [confirmDeletePaymentId, setConfirmDeletePaymentId] = React.useState<string | null>(null);
+  const [deletingPayment, setDeletingPayment] = React.useState(false);
+
   const totalPaid = person.payments.reduce((sum, p) => sum + p.amount, 0);
 
-  const handleDeletePayment = async (paymentId: string) => {
-    if (confirm("Are you sure you want to remove this payment record?")) {
-      await deletePayment(paymentId, person.id);
+  const handleDeleteMember = async () => {
+    setDeletingPerson(true);
+    setDeletePersonError(null);
+    try {
+      const res = await deletePersonSafely(person.id);
+      if (!res.success) {
+        setDeletePersonError(res.error || "Failed to delete person");
+      } else {
+        router.push("/people");
+      }
+    } catch (err: any) {
+      setDeletePersonError(err?.message || "Failed to delete person");
+    } finally {
+      setDeletingPerson(false);
+    }
+  };
+
+  const handleDeactivateInstead = async () => {
+    setDeletingPerson(true);
+    try {
+      await togglePersonStatus(person.id, false);
+      setConfirmDeletePerson(false);
+      setDeletePersonError(null);
+      router.refresh();
+    } finally {
+      setDeletingPerson(false);
+    }
+  };
+
+  const handleDeletePaymentConfirm = async () => {
+    if (!confirmDeletePaymentId) return;
+    setDeletingPayment(true);
+    try {
+      await deletePayment(confirmDeletePaymentId, person.id);
+      setConfirmDeletePaymentId(null);
+    } finally {
+      setDeletingPayment(false);
     }
   };
 
@@ -114,7 +164,7 @@ export function PersonDetailsView({ person }: PersonDetailsViewProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -132,6 +182,20 @@ export function PersonDetailsView({ person }: PersonDetailsViewProps) {
               >
                 <PlusCircle className="h-4 w-4" />
                 Record Payment
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setDeletePersonError(null);
+                  setConfirmDeletePerson(true);
+                }}
+                className="gap-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 border-rose-200"
+                title="Delete Member"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
               </Button>
             </div>
           </div>
@@ -244,12 +308,11 @@ export function PersonDetailsView({ person }: PersonDetailsViewProps) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeletePayment(p.id)}
+                            onClick={() => setConfirmDeletePaymentId(p.id)}
                             className="h-8 px-2 text-rose-600 hover:text-rose-800 hover:bg-rose-50"
                             title="Remove Payment Record"
                           >
-                            <Trash2 className="h-3.5 w-3.5 mr-1" />
-                            Delete
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </TableCell>
@@ -290,6 +353,81 @@ export function PersonDetailsView({ person }: PersonDetailsViewProps) {
           existingDate={new Date(editingPayment.paidAt)}
         />
       )}
+
+      {/* Delete Member Confirmation Dialog - matches Expenses delete dialog */}
+      <Dialog
+        open={confirmDeletePerson}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDeletePerson(false);
+            setDeletePersonError(null);
+          }
+        }}
+        title="Delete Member?"
+        description={`Are you sure you want to delete "${person.name}"? This action cannot be undone.`}
+      >
+        {deletePersonError && (
+          <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 mt-2 mb-2">
+            <p className="font-semibold">{deletePersonError}</p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-end gap-2 pt-4">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setConfirmDeletePerson(false);
+              setDeletePersonError(null);
+            }}
+            disabled={deletingPerson}
+          >
+            Cancel
+          </Button>
+
+          {deletePersonError ? (
+            <Button
+              variant="primary"
+              onClick={handleDeactivateInstead}
+              disabled={deletingPerson}
+            >
+              {deletingPerson ? "Deactivating..." : "Deactivate Instead"}
+            </Button>
+          ) : (
+            <Button
+              variant="danger"
+              onClick={handleDeleteMember}
+              disabled={deletingPerson}
+            >
+              {deletingPerson ? "Deleting..." : "Yes, Delete Member"}
+            </Button>
+          )}
+        </div>
+      </Dialog>
+
+      {/* Delete Payment Confirmation Dialog */}
+      <Dialog
+        open={!!confirmDeletePaymentId}
+        onOpenChange={(open) => !open && setConfirmDeletePaymentId(null)}
+        title="Remove Payment Record?"
+        description="Are you sure you want to remove this payment record? This action cannot be undone."
+      >
+        <div className="flex items-center justify-end gap-2 pt-4">
+          <Button
+            variant="outline"
+            onClick={() => setConfirmDeletePaymentId(null)}
+            disabled={deletingPayment}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={handleDeletePaymentConfirm}
+            disabled={deletingPayment}
+          >
+            {deletingPayment ? "Removing..." : "Yes, Remove Payment"}
+          </Button>
+        </div>
+      </Dialog>
     </div>
   );
 }

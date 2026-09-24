@@ -3,8 +3,9 @@ import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
 
 export const metadata: Metadata = {
-  title: "Group Finance - Monthly Ledger",
-  description: "Simple web application for managing people, monthly payments, expenses, and financial reports.",
+  title: "Rajo Charity - Monthly Ledger",
+  description:
+    "Simple web application for managing people, monthly payments, expenses, and financial reports.",
 };
 
 export default function RootLayout({

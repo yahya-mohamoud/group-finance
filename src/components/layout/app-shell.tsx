@@ -29,7 +29,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-teal-700 text-white">
               <Coins className="h-4 w-4" />
             </div>
-            <span className="text-base font-bold text-slate-900">Group Finance</span>
+            <span className="text-base font-bold text-slate-900">
+              RAJO CHARITY
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -42,7 +44,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               className="inline-flex items-center justify-center rounded-md p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:outline-none"
               aria-label="Open mobile menu"
             >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </button>
           </div>
         </header>
@@ -54,7 +60,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {NAVIGATION_ITEMS.map((item) => {
                 const isActive =
                   pathname === item.href ||
-                  (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                  (item.href !== "/dashboard" &&
+                    pathname.startsWith(item.href));
                 const Icon = item.icon;
 
                 return (
